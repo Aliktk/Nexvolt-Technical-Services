@@ -14,16 +14,25 @@ interface ProofZoomProps {
   projects: Project[];
 }
 
-/** Pinned scroll-zoom mosaic of real project photos. */
+const TILE_COUNT = 6; // the design is a 3×2 mosaic
+
+/** Pinned scroll-zoom mosaic of real project photos — always fills 6 tiles. */
 export function ProofZoom({ projects }: ProofZoomProps) {
-  const tiles =
-    projects.length >= 3
-      ? projects.slice(0, 6).map((p) => ({
-          k: (p.service || "WORK").toUpperCase(),
-          c: `${p.title}${p.area ? " · " + p.area : ""}`,
-          img: p.imageUrl || FALLBACK[0].img,
-        }))
-      : FALLBACK;
+  const fromProjects = projects
+    .filter((p) => p.imageUrl)
+    .map((p) => ({
+      k: (p.service || "WORK").toUpperCase(),
+      c: `${p.title}${p.area ? " · " + p.area : ""}`,
+      img: p.imageUrl as string,
+    }));
+
+  // Top up with curated fallbacks (skipping images already shown) until we have 6.
+  const tiles = [...fromProjects];
+  for (const f of FALLBACK) {
+    if (tiles.length >= TILE_COUNT) break;
+    if (!tiles.some((t) => t.img === f.img)) tiles.push(f);
+  }
+  const shown = tiles.slice(0, TILE_COUNT);
 
   return (
     <section className="proof-track" data-zoom id="work">
@@ -35,7 +44,7 @@ export function ProofZoom({ projects }: ProofZoomProps) {
           <h2 className="h2">Real work. <span className="em">Real warranties.</span></h2>
         </div>
         <div className="proof-mosaic">
-          {tiles.map((p, i) => (
+          {shown.map((p, i) => (
             <div className="ptile" key={i}>
               <Image src={p.img} alt={p.c} fill sizes="(max-width:680px) 50vw, 33vw" />
               <div className="cap"><b>{p.k}</b>{p.c}</div>
